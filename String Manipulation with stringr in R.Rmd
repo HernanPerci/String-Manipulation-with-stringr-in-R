@@ -20,10 +20,10 @@ El archivo se encuentra alojado y actualizado en la pagina web <https://github.c
 
 ```{r}
 
-library(stringr)
+library(tidyverse)
 library(babynames)
-library(dplyr)
-
+library(ggthemes)
+library(rebus)
 ```
 
 
@@ -296,7 +296,7 @@ mean(girl_length) - mean(boy_length)
 head(str_length(factor(boy_names)))
 
 # nchar() produce error a diferencia de str_length()
-# head(nchar(factor(boy_names)))
+head(nchar(boy_names))
 
 ```
 
@@ -380,9 +380,41 @@ number_as <- str_count(girl_names, pattern = fixed("a"))
 # Count occurrences of "A" in girl_names
 number_As <- str_count(girl_names, pattern = fixed("A"))
 
-# Histograms of number_as and number_As
-hist(number_as)
-hist(number_As)
+# Bar plots of number_as and number_As
+
+number_as_As <- tibble(number_as, number_As)
+
+ggplot(number_as_As, aes((factor(number_as)))) +
+  geom_bar() +
+  geom_text(stat = 'count', aes(label = ..count.., vjust= 0), position = position_dodge(1),   color =   "blue") +
+  labs(x = "number of ocurrences of a", y = "frequency", title = "The number of words found according \n to number of occurrences of \"a\"") +
+  theme_wsj() +
+  theme(
+  rect = element_rect(fill = "grey92"),
+  legend.key = element_rect(color = NA),
+  axis.ticks = element_blank(),
+  panel.grid = element_blank(),
+  panel.grid.major.y = element_line(color = "white", size = 0.5, linetype = "dotted"),
+  axis.text = element_text(color = "grey25"),
+  plot.title = element_text(face = "italic", size = 16),
+  legend.position = c(0.6, 0.1)
+  )
+
+ggplot(number_as_As, aes((factor(number_As)))) +
+  geom_bar() +
+  geom_text(stat = 'count', aes(label = ..count.., vjust= 0), position = position_dodge(1),   color =   "blue") +
+  labs(x = "number of ocurrences of A", y = "frequency", title = "The number of words found according \n to number of occurrences of \"A\"") +
+  theme_wsj() +
+  theme(
+  rect = element_rect(fill = "grey92"),
+  legend.key = element_rect(color = NA),
+  axis.ticks = element_blank(),
+  panel.grid = element_blank(),
+  panel.grid.major.y = element_line(color = "white", size = 0.5, linetype = "dotted"),
+  axis.text = element_text(color = "grey25"),
+  plot.title = element_text(face = "italic", size = 16),
+  legend.position = c(0.6, 0.1)
+  )
 
 # Find total "a" + "A"
 total_as <- number_as + number_As
@@ -472,6 +504,215 @@ str_replace_all(phone_numbers, pattern = "-", replacement = " ")
 
 # Turn phone numbers into the format xxx.xxx.xxxx
 str_replace_all(phone_numbers, pattern = "-", replacement = ".")
+
+```
+
+
+# Coincidencia de patrones con expresiones regulares
+
+## Coincidir con el inicio o el final de la cadena
+
+```{r}
+
+# Some strings to practice with
+x <- c("cat", "coat", "scotland", "tic toc")
+
+# Print END
+END
+
+# Run me
+str_view(x, pattern = START %R% "c")
+
+# Match the strings that start with "co" 
+str_view(x, pattern = START %R% "co")
+
+# Match the strings that end with "at"
+str_view(x, pattern = "at" %R% END)
+
+# Match the string that is exactly "cat"
+str_view(x, pattern = START %R% "cat" %R% END)
+
+```
+
+
+## Coincidir con cualquier caracter
+
+```{r}
+
+# Match two characters, where the second is a "t"
+str_view(x, pattern = ANY_CHAR %R% "t")
+
+# Match a "t" followed by any character
+str_view(x, pattern = "t" %R% ANY_CHAR)
+
+# Match two characters
+str_view(x, pattern = ANY_CHAR %R% ANY_CHAR)
+
+# Match a string with exactly three characters
+str_view(x, pattern = START %R% ANY_CHAR %R% ANY_CHAR %R% ANY_CHAR  %R% END)
+
+```
+
+
+## Combinando con funciones stringr
+
+```{r}
+
+pattern <- "q" %R% ANY_CHAR
+
+# Find names that have the pattern
+names_with_q <- str_subset(boy_names, pattern)
+
+# How many names were there?
+length(names_with_q)
+
+# Find part of name that matches pattern
+part_with_q <- str_extract(boy_names, pattern)
+
+# Get a table of counts
+table(part_with_q)
+
+# Did any names have the pattern more than once?
+count_of_q <- str_count(boy_names, pattern)
+
+# Get a table of counts
+table(count_of_q)
+
+# Which babies got these names?
+with_q <- str_detect(boy_names, pattern)
+
+# What fraction of babies got these names?
+mean(with_q)
+
+```
+
+
+## Alternancia
+
+```{r}
+
+# Match Jeffrey or Geoffrey
+whole_names <- or("Jeffrey", "Geoffrey")
+str_view(boy_names, pattern = whole_names, match = TRUE)
+
+# Match Jeffrey or Geoffrey, another way
+common_ending <- or("Je", "Geo") %R% "ffrey"
+str_view(boy_names, pattern = common_ending, match = TRUE)
+
+# Match with alternate endings
+by_parts <- or("Je", "Geo") %R% "ff" %R% or("ry", "ery", "rey", "erey") 
+str_view(boy_names, pattern = by_parts, match = TRUE)
+
+# Match names that start with Cath or Kath
+ckath <- START %R% or("C", "K") %R% "ath"
+str_view(girl_names, pattern = ckath, match = TRUE)
+
+```
+
+
+## Clases de caracteres
+
+```{r}
+
+# Create character class containing vowels
+vowels <- char_class("aeiouAEIOU")
+
+# Print vowels
+vowels
+
+# See vowels in x with str_view()
+str_view(x, pattern = vowels)
+
+# See vowels in x with str_view_all()
+str_view_all(x, vowels)
+
+# Number of vowels in boy_names
+num_vowels <- str_count(boy_names, vowels)
+
+# Number of characters in boy_names
+name_length <- str_length(boy_names)
+
+# Calc mean number of vowels
+mean(num_vowels)
+
+# Calc mean fraction of vowels per name
+mean(num_vowels / name_length)
+
+```
+
+
+## Repeticion
+
+```{r}
+
+# Vowels from last exercise
+vowels <- char_class("aeiouAEIOU")
+
+# See names with only vowels
+str_view(boy_names, 
+  pattern = START %R% one_or_more(vowels) %R% END, 
+  match = TRUE)
+
+# Use `negated_char_class()` for everything but vowels
+not_vowels <- negated_char_class("aeiouAEIOU")
+
+# See names with no vowels
+str_view(boy_names, 
+  pattern = exactly(one_or_more(not_vowels)), 
+  match = TRUE)
+
+```
+
+## Ejemplo 1
+
+```{r}
+
+contact <- c("Call me at 555-555-0191", "123 Main St", "(555) 555 0191", "Phone: 555.555.0191 Mobile: 555.555.0192")
+
+# Create a three digit pattern
+three_digits <- ANY_CHAR %R% ANY_CHAR %R% ANY_CHAR
+
+# Test it
+str_view_all(contact, pattern = three_digits)
+
+# Create a separator pattern
+separator <- char_class("-.() ")
+
+# Test it
+str_view_all(contact, pattern = separator)
+
+# Use these components
+three_digits <- DGT %R% DGT %R% DGT
+four_digits <- three_digits %R% DGT
+separator <- char_class("-.() ")
+
+# Create phone pattern
+phone_pattern <- optional(OPEN_PAREN) %R%
+  three_digits %R%
+  zero_or_more(separator) %R%
+  three_digits %R% 
+  zero_or_more(separator) %R%
+  four_digits
+        
+# Test it           
+str_view_all(contact, pattern = phone_pattern)
+
+# Use this pattern
+three_digits <- DGT %R% DGT %R% DGT
+four_digits <- three_digits %R% DGT
+separator <- char_class("-.() ")
+phone_pattern <- optional(OPEN_PAREN) %R% 
+  three_digits %R% 
+  zero_or_more(separator) %R% 
+  three_digits %R% 
+  zero_or_more(separator) %R%
+  four_digits
+  
+# Extract phone numbers
+str_extract(contact, phone_pattern)
+
+# Extract ALL phone numbers
+str_extract_all(contact, phone_pattern)
 
 ```
 
